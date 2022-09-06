@@ -1,0 +1,2 @@
+NumQubits;SizeOfDMat;VarSizeOfDMat;StdSizeOfDMat;SizeOfSMat;VarSizeOfSMat;StdSizeOfSMat;SizeOfFMat;VarSizeOfFMat;StdSizeOfFMat;AverageAccessTimeDMat;VarAccessTimeDMat;StdAccessTimeDMat;AverageAccessTimeSMat;VarAccessTimeSMat;StdAccessTimeSMat;AverageAccessTimeFMat;VarAccessTimeFMat;StdMeanAccessTimeFMat
+13;1073741936.0;0.0;0.0;2684354672.0;0.0;0.0;8.0;0.0;0.0;11831754419.2;3.021822523585469e+17;549711062.6124846;582717990451.2;8.473591325095268e+19;9205211200.779299;143800161459.2;1.343199804560416e+18;1158964971.239604
