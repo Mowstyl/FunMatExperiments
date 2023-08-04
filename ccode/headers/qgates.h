@@ -1,5 +1,6 @@
-#ifndef __QGATES_H
-#define __QGATES_H
+#pragma once
+#ifndef QGATES_H_
+#define QGATES_H_
 
 #include <complex.h>
 #include "precision.h"

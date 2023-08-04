@@ -1,5 +1,6 @@
-# ifndef __PRECISION_H
-# define __PRECISION_H
+#pragma once
+#ifndef PRECISION_H_
+#define PRECISION_H_
 
 #include <math.h>
 #include <complex.h>
