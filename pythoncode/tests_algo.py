@@ -1,31 +1,21 @@
-import tracemalloc
 import time as t
 import pandas as pd
 import mpmath as mp
 import numpy as np
 import sympy as sp
-#import faulthandler
+import faulthandler
 import os
 import random as rnd
 import time as t
 import pandas as pd
+import doki
 
 from funmatrix_simulator import apply_gate, measure, get_system, gates
 from mpi4py import MPI
 
 
-#faulthandler.enable()  # So that segfaults and the likes are shown
+faulthandler.enable()  # So that segfaults and the likes are shown
 comm = MPI.COMM_WORLD
-filters = (
-    tracemalloc.Filter(inclusive=False, filename_pattern="<frozen importlib._bootstrap>"),
-    tracemalloc.Filter(inclusive=False, filename_pattern="<frozen importlib._bootstrap_external>"),
-    tracemalloc.Filter(inclusive=False, filename_pattern="<frozen _collections_abc>"),
-    tracemalloc.Filter(inclusive=False, filename_pattern="<unknown>"),
-    tracemalloc.Filter(inclusive=False, filename_pattern=tracemalloc.__file__),
-    tracemalloc.Filter(inclusive=False, filename_pattern=os.path.join(os.path.dirname(sp.__file__), "*")),
-    tracemalloc.Filter(inclusive=False, filename_pattern=os.path.join(os.path.dirname(np.__file__), "*")),
-    tracemalloc.Filter(inclusive=False, filename_pattern=os.path.join(os.path.dirname(mp.__file__), "*"))
-    )
 
 
 def root_print(*args, **kwargs):
@@ -147,7 +137,7 @@ def grover(nq):
         raise ValueError("That test has not been designed")
     UwU_function = oracles[nq-2]
     not_ancilla = no_ancilla[nq-2]
-    start_snap = tracemalloc.take_snapshot()
+
     start_time = t.time()
     sys = get_system(nq + 1)
     sys = apply_gate(sys, f"H{not_ancilla}", targets=[i for i in range(not_ancilla)])
@@ -158,25 +148,23 @@ def grover(nq):
         res, sys = measure(sys, i)
         results.append(res)
     stop_time = t.time()
-    stop_snap = tracemalloc.take_snapshot()
-    start_stats = start_snap.filter_traces(filters).statistics("lineno")
-    stop_stats = stop_snap.filter_traces(filters).statistics("lineno")
-    start_size = sum(stat.size for stat in start_stats)
-    stop_size = sum(stat.size for stat in stop_stats)
-    return (results, stop_time - start_time, stop_size - start_size)
+
+    return (results, stop_time - start_time, doki.funmatrix_mem(sys[0], False))
 
 def bell_pair():
     sys = get_system(2)
     sys2 = apply_gate(sys, "H", targets=0)
     del sys
-    sys3 = apply_gate(sys2, "X", targets=0, controls=1)
+    sys3 = apply_gate(sys2, "X", targets=1, controls=0)
     del sys2
-    res, sys4 = measure(sys3, 0)
-    return (res, sys4)
+    res1, sys4 = measure(sys3, 0)
+    del sys3
+    res2, sys5 = measure(sys4, 1)
+    del sys4
+    return ([res1, res2], sys5)
 
 
 def deutsch_jozsa(nq, is_constant):
-    start_snap = tracemalloc.take_snapshot()
     start_time = t.time()
     sys = get_system(nq + 1)
     sys = apply_gate(sys, "X", targets=nq)
@@ -191,17 +179,12 @@ def deutsch_jozsa(nq, is_constant):
         res, sys = measure(sys, i)
         results.append(res)
     stop_time = t.time()
-    stop_snap = tracemalloc.take_snapshot()
-    start_stats = start_snap.filter_traces(filters).statistics("lineno")
-    stop_stats = stop_snap.filter_traces(filters).statistics("lineno")
-    start_size = sum(stat.size for stat in start_stats)
-    stop_size = sum(stat.size for stat in stop_stats)
-    return (results, stop_time - start_time, stop_size - start_size)
+
+    return (results, stop_time - start_time, doki.funmatrix_mem(sys[0], False))
 
 
 def bernstein_vazirani(bit_str):
     nq = len(bit_str)
-    start_snap = tracemalloc.take_snapshot()
     start_time = t.time()
     sys = get_system(nq + 1)
     sys = apply_gate(sys, "X", targets=nq)
@@ -215,16 +198,11 @@ def bernstein_vazirani(bit_str):
         res, sys = measure(sys, i)
         results.append(res)
     stop_time = t.time()
-    stop_snap = tracemalloc.take_snapshot()
-    start_stats = start_snap.filter_traces(filters).statistics("lineno")
-    stop_stats = stop_snap.filter_traces(filters).statistics("lineno")
-    start_size = sum(stat.size for stat in start_stats)
-    stop_size = sum(stat.size for stat in stop_stats)
-    return (results, stop_time - start_time, stop_size - start_size)
+
+    return (results, stop_time - start_time, doki.funmatrix_mem(sys[0], False))
 
 
 def main():
-    tracemalloc.start()
     root_print("Warmup...")
     for i in range(10):
         _, _ = bell_pair()
@@ -243,17 +221,6 @@ def main():
         for n in range(min_qb, max_qb + 1):
             root_print(f"{n} qubit tests")
             num_iters = 1
-            '''
-            if n < 8:
-                num_iters += int(255/2**n)
-            root_print(f"{num_iters} iterations...")
-            dec = num_iters // 100
-            if dec <= 1:
-                dec = num_iters // 10
-            dec = max(1, dec)
-            point = 1
-            root_print(f"ACK each {dec} iterations")
-            '''
             for it in range(num_iters):
                 if comm.rank == 0:
                     roll = np.random.randint(2, size=1)
@@ -285,11 +252,6 @@ def main():
                     data["grover_times"].append(np.nan)
                     data["grover_sizes"].append(np.nan)
                 data["num_qubits"].append(n)
-                '''
-                if point * dec == it:
-                    root_print(f"{(100 * (it + 1)) // num_iters}%")
-                    point += 1
-                '''
         if comm.rank == 0:
             pd.DataFrame(data).to_csv(f"fmtests/raw/data_{int(t.time())}_{min_qb}_{max_qb}.csv", sep=';', index=False)
 
